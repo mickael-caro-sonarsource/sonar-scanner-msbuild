@@ -85,7 +85,7 @@ stages:
           script: |
             Write-Host "Delete files created by unit tests, so that they will not be taken by the SonarCloud analysis."
 
-            $files = Get-ChildItem env:TEST_FILE_TO_DELETE
+            $files = $env:TEST_FILE_TO_DELETE
             $listOfFiles = $files.Split(";;")
             foreach ($file in $listOfFiles) {
               if([System.IO.File]::Exists($file))
