@@ -3,8 +3,7 @@
 
 trigger: none
 
-pool:
-  vmImage: 'vs2017-win2016'
+pool: default
 
 variables:
   group: sonarsource-build-variables
@@ -50,7 +49,7 @@ stages:
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
             
             # Set the variable to it can be used by other tasks
-            Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;]$sonarProjectVersion"
+            Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
       - task: SonarCloudPrepare@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
         inputs: 
@@ -118,8 +117,7 @@ stages:
     displayName: Deploy to Chocolatey (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool:
-      vmImage: 'windows-latest'
+    pool: default
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -132,6 +130,22 @@ stages:
               itemPattern: '*.nupkg'
               targetPath: '$(Pipeline.Workspace)'
               artifactName: 'scanner-zips'
+          - task: PowerShell@2
+            displayName: 'Promote project version'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Calculate the file path
+                $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\scripts\version\Version.props"
+                Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
+            
+                # Read the version from the file
+                [xml]$versionProps = Get-Content "$versionFilePath"
+                $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
+                Write-Host "Sonar project version is '${sonarProjectVersion}'"
+            
+                # Set the variable to it can be used by other tasks
+                Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
           - task: PowerShell@2
             displayName: "Install chocolatey"
             inputs:
@@ -163,8 +177,7 @@ stages:
     displayName: Deploy to GitHub (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool:
-      vmImage: 'windows-latest'
+    pool: default
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -177,6 +190,22 @@ stages:
               itemPattern: '*.zip'
               targetPath: '$(Pipeline.Workspace)'
               artifactName: 'scanner-zips'
+          - task: PowerShell@2
+            displayName: 'Promote project version'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Calculate the file path
+                $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\scripts\version\Version.props"
+                Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
+            
+                # Read the version from the file
+                [xml]$versionProps = Get-Content "$versionFilePath"
+                $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
+                Write-Host "Sonar project version is '${sonarProjectVersion}'"
+            
+                # Set the variable to it can be used by other tasks
+                Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
