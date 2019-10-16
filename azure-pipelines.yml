@@ -3,7 +3,7 @@
 
 trigger: none
 
-pool: default
+pool: Default
 
 variables:
   group: sonarsource-build-variables
@@ -117,7 +117,7 @@ stages:
     displayName: Deploy to Chocolatey (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool: default
+    pool: Default
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -177,7 +177,7 @@ stages:
     displayName: Deploy to GitHub (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool: default
+    pool: Default
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
