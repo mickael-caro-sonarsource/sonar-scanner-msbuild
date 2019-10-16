@@ -3,7 +3,8 @@
 
 trigger: none
 
-pool: Default
+pool:
+  vmImage: 'vs2017-win2016'
 
 variables:
   group: sonarsource-build-variables
@@ -117,7 +118,8 @@ stages:
     displayName: Deploy to Chocolatey (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool: Default
+    pool:
+     vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -176,8 +178,9 @@ stages:
   - deployment: deploy_github_test
     displayName: Deploy to GitHub (Test)
     variables:
-     pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
-    pool: Default
+      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
+    pool:
+      vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
