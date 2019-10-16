@@ -96,6 +96,8 @@ stages:
                 Write-Host "$file deleted."
               }
             }
+            Get-ChildItem -Filter "dummy.*" -Recurse | Remove-Item
+
       - task: SonarCloudAnalyze@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
       - task: SonarCloudPublish@1
