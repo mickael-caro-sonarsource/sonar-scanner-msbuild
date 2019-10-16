@@ -109,8 +109,8 @@ stages:
           targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)'
           artifact: 'scanner-zips'
 
-- stage: DeployToTest
-  displayName: Deploy to test environment
+- stage: DeployToChocolateyTest
+  displayName: Upload to Chocolatey
   dependsOn: 
   - Build
   jobs:
@@ -154,6 +154,11 @@ stages:
               script: |
                 Write-Host "Installing chocolatey...."
                 choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$(build.SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+- stage: DeployToGitHubTest
+  displayName: Release to GitHub
+  dependsOn: 
+  - Build
+  jobs:
   - deployment: deploy_github_test
     displayName: Deploy to GitHub (Test)
     variables:
