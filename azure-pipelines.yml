@@ -15,6 +15,7 @@ variables:
   sonarCloudMsBuildProjectName: '[TEST]SonarScanner for MSBuild'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+  SONAR_PROJECT_VERSION: ''
 
 stages:
 - stage: Build
@@ -107,9 +108,20 @@ stages:
         inputs:
           filePath: 'scripts\\build\\ci-build.ps1'
       - task: PublishPipelineArtifact@1
+        displayName: 'Publish dotnet global tool artifact'
         inputs:
-          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)'
-          artifact: 'scanner-zips'
+          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/dotnet-sonarscanner.*.nupkg'
+          artifact: 'nuget-package'
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish nuget zips artifacts'
+        inputs:
+          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/sonarscanner-msbuild-*.zip'
+          artifact: 'github-release-packages'
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish chocolatey artifacts'
+        inputs:
+          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/sonarscanner-msbuild-*.nupkg'
+          artifact: 'chocolatey-packages'
 
 - stage: DeployToChocolateyTest
   displayName: Upload to Chocolatey
@@ -119,7 +131,7 @@ stages:
   - deployment: deploy_chocolatey_test
     displayName: Deploy to Chocolatey (Test)
     variables:
-     pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
+     pipelineArtifactOutputPath: $(Pipeline.Workspace)/chocolatey-packages
     pool:
      vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
@@ -131,9 +143,8 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              itemPattern: '*.nupkg'
               targetPath: '$(Pipeline.Workspace)'
-              artifactName: 'scanner-zips'
+              artifactName: 'chocolatey-packages'
           - task: PowerShell@2
             displayName: 'Promote project version'
             inputs:
@@ -180,7 +191,7 @@ stages:
   - deployment: deploy_github_test
     displayName: Deploy to GitHub (Test)
     variables:
-      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-zips
+      pipelineArtifactOutputPath: $(Pipeline.Workspace)/github-release-packages
     pool:
       vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
@@ -192,32 +203,15 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              itemPattern: '*.zip'
               targetPath: '$(Pipeline.Workspace)'
-              artifactName: 'scanner-zips'
-          - task: PowerShell@2
-            displayName: 'Promote project version'
-            inputs:
-              targetType: 'inline'
-              script: |
-                # Calculate the file path
-                $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\scripts\version\Version.props"
-                Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
-            
-                # Read the version from the file
-                [xml]$versionProps = Get-Content "$versionFilePath"
-                $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
-                Write-Host "Sonar project version is '${sonarProjectVersion}'"
-            
-                # Set the variable to it can be used by other tasks
-                Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
+              artifactName: 'github-release-packages'
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
              targetType: 'inline'
              script: |
                try { 
-                 Invoke-RestMethod -Uri 'https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$(build.SONAR_PROJECT_VERSION)&t=github-token' -Method Get -ErrorAction Stop -OutFile release.txt
+                 Invoke-RestMethod -Uri 'https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$(SONAR_PROJECT_VERSION)&t=github-token' -Method Get -ErrorAction Stop -OutFile release.txt
                }
                catch [System.Net.WebException]
                { 
@@ -229,14 +223,44 @@ stages:
                  Write-Host $ErrResp.ToString()
                }
           - task: GitHubRelease@1
+            displayName: 'Create release on GitHub and upload artifacts'
             inputs:
               gitHubConnection: 'mickael-caro-sonarsource (1)'
               repositoryName: '$(Build.Repository.Name)'
               action: 'create'
               target: '$(Build.SourceVersion)'
               tagSource: 'userSpecifiedTag'
-              tag: '$(build.SONAR_PROJECT_VERSION).$(Build.BuildId)'
-              title: '$(build.SONAR_PROJECT_VERSION).$(Build.BuildId)'
+              tag: '$(SONAR_PROJECT_VERSION).$(Build.BuildId)'
+              title: '$(SONAR_PROJECT_VERSION).$(Build.BuildId)'
               releaseNotesFilePath: 'release.txt'
               assets: '$(pipelineArtifactOutputPath)/*.zip'
               addChangeLog: false
+- stage: DeployToNugetTest
+  displayName: Upload to Nuget
+  dependsOn: 
+  - Build
+  jobs:
+  - deployment: deploy_nuget_test
+    displayName: Deploy to Nuget (Test)
+    variables:
+     pipelineArtifactOutputPath: $(Pipeline.Workspace)/nuget-package
+    pool:
+     vmImage: 'vs2017-win2016'
+    # creates an environment if it doesn't exist
+    environment: 'ScannerForMsBuild-Test'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              targetPath: '$(Pipeline.Workspace)'
+              artifactName: 'nuget-package'
+          - task: NuGetCommand@2
+            enabled: false
+            inputs:
+             command: 'push'
+             packagesToPush: '$(pipelineArtifactOutputPath)/*.nupkg'
+             nuGetFeedType: 'external'
+             feedsToUse: 'Nuget'
