@@ -108,20 +108,10 @@ stages:
         inputs:
           filePath: 'scripts\\build\\ci-build.ps1'
       - task: PublishPipelineArtifact@1
-        displayName: 'Publish dotnet global tool artifact'
+        displayName: 'Publish packages as artifacts'
         inputs:
-          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/dotnet-sonarscanner.*.nupkg'
-          artifact: 'nuget-package'
-      - task: PublishPipelineArtifact@1
-        displayName: 'Publish nuget zips artifacts'
-        inputs:
-          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/sonarscanner-msbuild-*.zip'
-          artifact: 'github-release-packages'
-      - task: PublishPipelineArtifact@1
-        displayName: 'Publish chocolatey artifacts'
-        inputs:
-          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/sonarscanner-msbuild-*.nupkg'
-          artifact: 'chocolatey-packages'
+          targetPath: 'DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)'
+          artifact: 'scanner-packages'
 
 - stage: DeployToChocolateyTest
   displayName: Upload to Chocolatey
@@ -131,7 +121,7 @@ stages:
   - deployment: deploy_chocolatey_test
     displayName: Deploy to Chocolatey (Test)
     variables:
-     pipelineArtifactOutputPath: $(Pipeline.Workspace)/chocolatey-packages
+     pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
     pool:
      vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
@@ -143,8 +133,9 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
+              itemPattern: 'sonarscanner-msbuild-*.nupkg'
               targetPath: '$(Pipeline.Workspace)'
-              artifactName: 'chocolatey-packages'
+              artifactName: 'scanner-packages'
           - task: PowerShell@2
             displayName: 'Promote project version'
             inputs:
@@ -175,14 +166,14 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Publishing .net 46 package...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$(build.SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$(SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
           - task: PowerShell@2
             displayName: "Push .Net Core 2 package to chocolatey"
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$(build.SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$(SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
 - stage: DeployToGitHubTest
   displayName: Release to GitHub
   dependsOn: 
@@ -191,7 +182,7 @@ stages:
   - deployment: deploy_github_test
     displayName: Deploy to GitHub (Test)
     variables:
-      pipelineArtifactOutputPath: $(Pipeline.Workspace)/github-release-packages
+      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
     pool:
       vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
@@ -203,8 +194,9 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
+              itemPattern: 'sonarscanner-msbuild-*.zip'
               targetPath: '$(Pipeline.Workspace)'
-              artifactName: 'github-release-packages'
+              artifactName: 'scanner-packages'
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
@@ -243,7 +235,7 @@ stages:
   - deployment: deploy_nuget_test
     displayName: Deploy to Nuget (Test)
     variables:
-     pipelineArtifactOutputPath: $(Pipeline.Workspace)/nuget-package
+     pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
     pool:
      vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
@@ -255,8 +247,9 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
+              itemPattern: 'dotnet-sonarscanner*.nupkg'
               targetPath: '$(Pipeline.Workspace)'
-              artifactName: 'nuget-package'
+              artifactName: 'scanner-packages'
           - task: NuGetCommand@2
             enabled: false
             inputs:
