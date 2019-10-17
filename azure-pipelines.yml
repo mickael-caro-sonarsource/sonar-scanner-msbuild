@@ -150,7 +150,6 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
-                
                 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
                 Write-Host "Choco is ready to use !"
           - task: PowerShell@2
