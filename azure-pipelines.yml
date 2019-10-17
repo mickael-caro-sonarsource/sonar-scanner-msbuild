@@ -123,6 +123,7 @@ stages:
     displayName: Deploy to Chocolatey (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
+     chocoApiKey: $(CHOCO_TEST_API_KEY)
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -149,14 +150,14 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Publishing .net 46 package...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$env:SONAR_PROJECT_VERSION.$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$env:SONAR_PROJECT_VERSION.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
           - task: PowerShell@2
             displayName: "Push .Net Core 2 package to chocolatey"
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$env:SONAR_PROJECT_VERSION.$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$env:SONAR_PROJECT_VERSION.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
 - stage: DeployToGitHubTest
   displayName: Release to GitHub
   dependsOn: 
