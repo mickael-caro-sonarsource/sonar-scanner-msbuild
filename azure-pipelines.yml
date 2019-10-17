@@ -48,7 +48,6 @@ stages:
             [xml]$versionProps = Get-Content "$versionFilePath"
             $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
-            Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt ${sonarProjectVersion}
             # Set the variable to it can be used by other tasks
             Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
       - task: SonarCloudPrepare@1
@@ -77,6 +76,12 @@ stages:
           searchFolder: '$(System.DefaultWorkingDirectory)'
           vsTestVersion: '15.0'
           codeCoverageEnabled: true
+      - task: PowerShell@2
+        displayName: 'Write project version in file' 
+        inputs:
+          targetType: 'inline'
+          script: |
+            Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt $(SONAR_PROJECT_VERSION)
       - task: PowerShell@2
         displayName: 'Delete files created by unit tests'
         inputs:
