@@ -48,9 +48,8 @@ stages:
             [xml]$versionProps = Get-Content "$versionFilePath"
             $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
-            
+            Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt ${sonarProjectVersion}
             # Set the variable to it can be used by other tasks
-            $env:SONAR_PROJECT_VERSION = $sonarProjectVersion
             Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
       - task: SonarCloudPrepare@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
@@ -133,7 +132,9 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              itemPattern: 'sonarscanner-msbuild-*.nupkg'
+              itemPattern: |
+                sonarscanner-msbuild-*.nupkg
+                version.txt
               targetPath: '$(Pipeline.Workspace)'
               artifactName: 'scanner-packages'
           - task: PowerShell@2
@@ -142,8 +143,15 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
+                
                 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
                 Write-Host "Choco is ready to use !"
+          - task: PowerShell@2
+            displayName: 'Get version from file'
+            inputs:
+              targetType: 'inline'
+              script: |
+                $env:SONAR_PROJECT_VERSION = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
           - task: PowerShell@2
             displayName: "Push .Net Fwk 46 package to chocolatey"
             inputs:
@@ -176,9 +184,17 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              itemPattern: 'sonarscanner-msbuild-*.zip'
+              itemPattern: |
+                sonarscanner-msbuild-*.zip
+                version.txt
               targetPath: '$(Pipeline.Workspace)'
               artifactName: 'scanner-packages'
+          - task: PowerShell@2
+            displayName: 'Get version from file'
+            inputs:
+              targetType: 'inline'
+              script: |
+                $env:SONAR_PROJECT_VERSION = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
