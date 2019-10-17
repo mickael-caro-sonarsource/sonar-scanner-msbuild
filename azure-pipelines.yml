@@ -196,7 +196,8 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                ##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                $version = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION]$version"
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
