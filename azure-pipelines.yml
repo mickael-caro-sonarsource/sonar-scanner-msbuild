@@ -11,7 +11,7 @@ variables:
   solution: 'SonarScanner.MSBuild.sln'
   sonarCloudConnection: 'SonarCloud'
   sonarCloudOrganization: 'mickael-caro16778'
-  sonarCloudMsBuildProjectKey: 'test-sonarscanner-msbuild'
+  sonarCloudMsBuildProjectKey: 'test-scanner-msbuild'
   sonarCloudMsBuildProjectName: '[TEST]SonarScanner for MSBuild'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
