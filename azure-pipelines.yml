@@ -50,6 +50,7 @@ stages:
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
             
             # Set the variable to it can be used by other tasks
+            $env:SONAR_PROJECT_VERSION = $sonarProjectVersion
             Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
       - task: SonarCloudPrepare@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
@@ -122,8 +123,6 @@ stages:
     displayName: Deploy to Chocolatey (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
-    pool:
-     vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -183,8 +182,6 @@ stages:
     displayName: Deploy to GitHub (Test)
     variables:
       pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
-    pool:
-      vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -203,7 +200,10 @@ stages:
              targetType: 'inline'
              script: |
                try { 
-                 Invoke-RestMethod -Uri 'https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$(SONAR_PROJECT_VERSION)&t=github-token' -Method Get -ErrorAction Stop -OutFile release.txt
+                   Write-Host "Project version : $env:SONAR_PROJECT_VERSION"
+                   $url = "https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$env:SONAR_PROJECT_VERSION&t=github-token"
+                   Write-Host "Release note url : $url"
+                   Invoke-RestMethod -Uri $url -Method Get -ErrorAction Stop -OutFile release.txt
                }
                catch [System.Net.WebException]
                { 
@@ -236,8 +236,6 @@ stages:
     displayName: Deploy to Nuget (Test)
     variables:
      pipelineArtifactOutputPath: $(Pipeline.Workspace)/scanner-packages
-    pool:
-     vmImage: 'vs2017-win2016'
     # creates an environment if it doesn't exist
     environment: 'ScannerForMsBuild-Test'
     strategy:
@@ -256,4 +254,4 @@ stages:
              command: 'push'
              packagesToPush: '$(pipelineArtifactOutputPath)/*.nupkg'
              nuGetFeedType: 'external'
-             feedsToUse: 'Nuget'
+             publishFeedCredentials: 'Nuget'
