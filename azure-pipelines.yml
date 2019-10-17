@@ -136,22 +136,6 @@ stages:
               targetPath: '$(Pipeline.Workspace)'
               artifactName: 'scanner-packages'
           - task: PowerShell@2
-            displayName: 'Promote project version'
-            inputs:
-              targetType: 'inline'
-              script: |
-                # Calculate the file path
-                $versionFilePath = "$env:BUILD_SOURCESDIRECTORY\scripts\version\Version.props"
-                Write-Host "Reading the Sonar project version from '${versionFilePath}' ..."
-            
-                # Read the version from the file
-                [xml]$versionProps = Get-Content "$versionFilePath"
-                $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
-                Write-Host "Sonar project version is '${sonarProjectVersion}'"
-            
-                # Set the variable to it can be used by other tasks
-                Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
-          - task: PowerShell@2
             displayName: "Install chocolatey"
             inputs:
               targetType: 'inline'
@@ -165,14 +149,14 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Publishing .net 46 package...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$(SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$env:SONAR_PROJECT_VERSION.$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
           - task: PowerShell@2
             displayName: "Push .Net Core 2 package to chocolatey"
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$(SONAR_PROJECT_VERSION).$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$env:SONAR_PROJECT_VERSION.$(Build.BuildId).nupkg -k $(CHOCO_TEST_API_KEY) -source "https://chocolatey.org/" --yes --whatif
 - stage: DeployToGitHubTest
   displayName: Release to GitHub
   dependsOn: 
