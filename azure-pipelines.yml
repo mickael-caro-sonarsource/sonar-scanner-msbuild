@@ -49,6 +49,7 @@ stages:
             $sonarProjectVersion = $versionProps.Project.PropertyGroup.MainVersion
             Write-Host "Sonar project version is '${sonarProjectVersion}'"
             # Set the variable to it can be used by other tasks
+            [System.Environment]::SetEnvironmentVariable("SONAR_PROJECT_VERSION",$sonarProjectVersion, "User")
             Write-Host "##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]$sonarProjectVersion"
       - task: SonarCloudPrepare@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
@@ -81,6 +82,7 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
+            $env:SONAR_PROJECT_VERSION = [System.Environment]::GetEnvironmentVariable("SONAR_PROJECT_VERSION","User")
             Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt $env:SONAR_PROJECT_VERSION
       - task: PowerShell@2
         displayName: 'Delete files created by unit tests'
