@@ -154,25 +154,21 @@ stages:
                 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
                 Write-Host "Choco is ready to use !"
           - task: PowerShell@2
-            displayName: 'Get version from file'
-            inputs:
-              targetType: 'inline'
-              script: |
-                $env:SONAR_PROJECT_VERSION = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
-          - task: PowerShell@2
             displayName: "Push .Net Fwk 46 package to chocolatey"
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "Publishing .net 46 package...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$env:SONAR_PROJECT_VERSION.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
+                $projectVersion = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-net46.$projectVersion.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
           - task: PowerShell@2
             displayName: "Push .Net Core 2 package to chocolatey"
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "Installing chocolatey...."
-                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$env:SONAR_PROJECT_VERSION.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
+                $projectVersion = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                choco push $(pipelineArtifactOutputPath)/sonarscanner-msbuild-netcoreapp2.0.$projectVersion.$env:BUILD_BUILDID.nupkg -k $env:chocoApiKey -source "https://chocolatey.org/" --yes --whatif
 - stage: DeployToGitHubTest
   displayName: Release to GitHub
   dependsOn: 
@@ -201,15 +197,16 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                $env:SONAR_PROJECT_VERSION = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                ##vso[task.setvariable variable=SONAR_PROJECT_VERSION;isOutput=true]Get-Content "$(pipelineArtifactOutputPath)/version.txt"
           - task: PowerShell@2
             displayName: 'Generate release note'
             inputs:
              targetType: 'inline'
              script: |
                try { 
-                   Write-Host "Project version : $env:SONAR_PROJECT_VERSION"
-                   $url = "https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$env:SONAR_PROJECT_VERSION&t=github-token"
+                   $projectVersion = Get-Content "$(pipelineArtifactOutputPath)/version.txt"
+                   Write-Host "Project version : $projectVersion"
+                   $url = "https://sonar-dotnet-rel-notes.azurewebsites.net/api/gen?r=SonarSource/sonar-scanner-msbuild&m=$projectVersion&t=github-token"
                    Write-Host "Release note url : $url"
                    Invoke-RestMethod -Uri $url -Method Get -ErrorAction Stop -OutFile release.txt
                }
