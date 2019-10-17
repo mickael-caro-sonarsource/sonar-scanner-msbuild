@@ -96,8 +96,8 @@ stages:
                 Write-Host "$file deleted."
               }
             }
-            Write-Host $pwd
-            Get-ChildItem $pwd -Filter "**/dummy.*" -Recurse | Remove-Item
+            Get-ChildItem $(Agent.TempDirectory) -Filter 'dummy.*' -Recurse -Attributes !Directory
+            Get-ChildItem $(Agent.TempDirectory) -Filter 'dummy.*' -Recurse -Attributes !Directory | Remove-Item
 
       - task: SonarCloudAnalyze@1
         condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranchName'], 'master')))
