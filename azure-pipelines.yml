@@ -81,7 +81,7 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
-            Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt $(SONAR_PROJECT_VERSION)
+            Add-Content DeploymentArtifacts/BuildAgentPayload/$(BuildConfiguration)/version.txt $env:SONAR_PROJECT_VERSION
       - task: PowerShell@2
         displayName: 'Delete files created by unit tests'
         inputs:
